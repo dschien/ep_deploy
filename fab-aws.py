@@ -1,25 +1,22 @@
 __author__ = 'schien'
 
-
+from fabric.api import *
 import os, time, boto
 import ConfigParser
 
 CONFIG_FILE = "ep.cfg"
 
-MAVERIK_64 = "ami-688c7801"
-MAVERIK_32 = "ami-1a837773"
-LUCID_64 = "ami-da0cf8b3"
-LUCID_32 = "ami-a403f7cd"
+ep_ubuntu_14_04 = "ami-47a23a30"
 
 config = ConfigParser.RawConfigParser()
 
 # If there is no config file, let's write one.
 if not os.path.exists(CONFIG_FILE):
     config.add_section('ec2')
-    config.set('ec2', 'AMI', LUCID_32)
-    config.set('ec2', 'INSTANCE_TYPE', 'm1.small')
-    config.set('ec2', 'SECURITY_GROUP', 'geonode')
-    config.set('ec2', 'KEY_PATH', 'geonode.pem')
+    config.set('ec2', 'AMI', ep_ubuntu_14_04)
+    config.set('ec2', 'INSTANCE_TYPE', 't2.micro')
+    config.set('ec2', 'SECURITY_GROUP', 'ep')
+    config.set('ec2', 'KEY_PATH', '~/.ssh/ep-host.pem')
     config.set('ec2', 'AWS_ACCESS_KEY_ID', '')
     config.set('ec2', 'AWS_SECRET_ACCESS_KEY', '')
     config.set('ec2', 'USER', 'ubuntu')
@@ -55,25 +52,25 @@ else:
     security_groups = conn.get_all_security_groups()
 
     try:
-        [geonode_group] = [x for x in security_groups if x.name == SECURITY_GROUP]
+        [ep_group] = [x for x in security_groups if x.name == SECURITY_GROUP]
     except ValueError:
         # this probably means the security group is not defined
         # create the rules programatically to add access to ports 22, 80, 8000 and 8001
-        geonode_group = conn.create_security_group(SECURITY_GROUP, 'Cool GeoNode rules')
-        geonode_group.authorize('tcp', 22, 22, '0.0.0.0/0')
-        geonode_group.authorize('tcp', 80, 80, '0.0.0.0/0')
-        geonode_group.authorize('tcp', 8000, 8001, '0.0.0.0/0')
-        geonode_group.authorize('tcp', 8080, 8080, '0.0.0.0/0')
+        ep_group = conn.create_security_group(SECURITY_GROUP, 'Cool EP rules')
+        ep_group.authorize('tcp', 22, 22, '0.0.0.0/0')
+        ep_group.authorize('tcp', 80, 80, '0.0.0.0/0')
+        ep_group.authorize('tcp', 8000, 8001, '0.0.0.0/0')
+        ep_group.authorize('tcp', 8080, 8080, '0.0.0.0/0')
 
     try:
-        [geonode_key] = [x for x in conn.get_all_key_pairs() if x.name == 'geonode']
+        [geonode_key] = [x for x in conn.get_all_key_pairs() if x.name == 'dan']
     except ValueError:
         # this probably means the key is not defined
         # get the first one in the belt for now:
         print "GeoNode file not found in the server"
         geonode_key = conn.get_all_key_pairs()[0]
 
-    reservation = image.run(security_groups=[geonode_group, ], key_name=geonode_key.name, instance_type=INSTANCE_TYPE)
+    reservation = image.run(security_groups=[ep_group, ], key_name=geonode_key.name, instance_type=INSTANCE_TYPE)
     instance = reservation.instances[0]
 
     print "Firing up instance"
