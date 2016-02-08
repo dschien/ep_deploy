@@ -8,11 +8,10 @@ config = ConfigParser.RawConfigParser()
 config.read(CONFIG_FILE)
 
 env.forward_agent = True
-KEY_PATH = config.get('energyportal', 'KEY_PATH')
+KEY_PATH = config.get('energyportal_staging', 'KEY_PATH')
 env.key_filename = KEY_PATH
 # env.hosts = [config.get('energyportal', 'host')]
-env.user = config.get('energyportal', 'USER')
-
+env.user = config.get('energyportal_staging', 'USER')
 
 def staging():
     env.hosts = ['52.49.146.206']
