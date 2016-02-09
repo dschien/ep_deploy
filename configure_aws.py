@@ -1,6 +1,7 @@
 import ConfigParser
 import os
 
+from fabric.contrib.files import upload_template
 from fabric.utils import apply_lcwd
 from fabric.api import *
 import boto3
@@ -10,6 +11,15 @@ config = ConfigParser.RawConfigParser()
 config.read(CONFIG_FILE)
 
 env.update(config._sections['ep_common'])
+
+
+def install_logs_agent():
+    run('curl https://s3.amazonaws.com/aws-cloudwatch/downloads/latest/awslogs-agent-setup.py -O')
+    run('sudo python ./awslogs-agent-setup.py -o')
+
+    upload_template('awslogs.conf',
+                    '/var/awslogs/etc/awslogs.conf',
+                    use_sudo=True, template_dir='templates', use_jinja=True, context=env)
 
 
 def create_log_alarm_sdk():
