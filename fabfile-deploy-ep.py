@@ -22,11 +22,11 @@ env.update(config._sections['ep_common'])
 # env.host = env.hosts[0]
 
 def prod():
-    env.hosts = [config.get('energyportal', 'host')]
+    env.update(config._sections['energyportal'])
 
 
 def staging():
-    env.hosts = [config.get('energyportal_staging', 'host')]
+    env.update(config._sections['energyportal_staging'])
 
 
 def change_hostname():
