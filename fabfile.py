@@ -8,13 +8,15 @@ config = ConfigParser.RawConfigParser()
 config.read(CONFIG_FILE)
 
 env.forward_agent = True
-KEY_PATH = config.get('energyportal_staging', 'KEY_PATH')
-env.key_filename = KEY_PATH
-# env.hosts = [config.get('energyportal', 'host')]
-env.user = config.get('energyportal_staging', 'USER')
+env.update(config._sections['ep_common'])
+
+
+def prod():
+    env.hosts = [config.get('energyportal', 'host')]
+
 
 def staging():
-    env.hosts = ['52.49.146.206']
+    env.hosts = [config.get('energyportal_staging', 'host')]
 
 
 def update():
@@ -107,6 +109,26 @@ def start_celery_beat():
                 logger.info('container celery_beats started')
 
 
+def start_rabbit():
+    with settings(warn_only=True):
+        with cd('ep_site'):
+            result = run(
+                'docker run -d --volumes-from celery_rabbit_data --hostname rabbit --name rabbit rabbitmq:3'
+            )
+            if not result.failed:
+                logger.info('container rabbit started')
+
+
+def start_db():
+    with settings(warn_only=True):
+        with cd('ep_site'):
+            result = run(
+                'docker run -p 5432:5432 --name db --env-file etc/env -d --volumes-from pg_data postgres:9.4'
+            )
+            if not result.failed:
+                logger.info('container celery_beats started')
+
+
 def recreate_db():
     with settings(warn_only=True):
         with cd('ep_site'):
@@ -127,8 +149,10 @@ def redeploy_container(container_name_or_id=''):
         start_web()
     if container_name_or_id == 'celery_worker':
         start_celery_worker()
-    if container_name_or_id == 'celery_beat':
-        start_celery_beat()
+    if container_name_or_id == 'rabbit':
+        start_rabbit()
+    if container_name_or_id == 'db':
+        start_db()
 
 
 def update_site():
@@ -137,6 +161,9 @@ def update_site():
     :return:
     """
     update()
+
+    for container in ['rabbit', 'db']:
+        redeploy_container(container)
 
     for container in ['web', 'celery_worker', 'celery_beat']:
         redeploy_container(container)

@@ -16,25 +16,17 @@ config = ConfigParser.RawConfigParser()
 config.read(CONFIG_FILE)
 
 env.update(config._sections['ep_common'])
-env.user = config.get('ep_common', 'USER')
+
+
 # env.hosts = [config.get('energyportal_staging', 'host')]
 # env.host = env.hosts[0]
 
-env.key_filename = config.get('ep_common', 'key_path')
+def prod():
+    env.hosts = [config.get('energyportal', 'host')]
 
 
-#### Environments
-
-
-def production():
-    "Setup production settings"
-    # check_or_start_instance()
-    env.repo = ("ep-venv", "origin", "release")
-    env.virtualenv, env.parent, env.branch = env.repo
-    env.base = "/opt"
-    env.git_origin = GIT_ORIGIN
-    env.git_repo = GIT_REPO
-    env.dev_mode = False
+def staging():
+    env.hosts = [config.get('energyportal_staging', 'host')]
 
 
 def change_hostname():
@@ -42,14 +34,15 @@ def change_hostname():
 
 
 def config_nginx():
+    template_dir = 'templates/'
     upload_template('nginx.conf',
                     '/etc/nginx/nginx.conf',
-                    use_sudo=True, template_dir='templates/')
+                    use_sudo=True, template_dir=template_dir)
     if not exists('/etc/nginx/sites-enabled/'):
         sudo('mkdir /etc/nginx/sites-enabled/')
     upload_template('docker_unicorn.conf',
                     '/etc/nginx/sites-enabled/docker_unicorn.conf',
-                    use_sudo=True, template_dir='templates/', use_jinja=True, context=env)
+                    use_sudo=True, template_dir=template_dir, use_jinja=True, context=env)
 
     if not exists('/etc/nginx/ssl/'):
         sudo('mkdir /etc/nginx/ssl/')
