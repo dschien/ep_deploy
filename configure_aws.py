@@ -14,6 +14,28 @@ env.update(config._sections['ep_common'])
 
 
 def install_logs_agent():
+    """
+    This requires that EP instances have an IAM role with the following policy attached:
+        {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+          "logs:DescribeLogStreams"
+        ],
+        "Resource": [
+          "arn:aws:logs:*:*:*"
+        ]
+      }
+     ]
+    }
+
+    :return:
+    """
     run('curl https://s3.amazonaws.com/aws-cloudwatch/downloads/latest/awslogs-agent-setup.py -O')
     run('sudo python ./awslogs-agent-setup.py -o')
 
