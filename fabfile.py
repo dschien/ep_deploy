@@ -79,7 +79,7 @@ def start_web():
     with settings(warn_only=True):
         with cd('ep_site'):
             result = run(
-                "docker run --name web -h ep  -d -p 8000:8000 --link rabbit --link db:db -v `pwd`:/ep_site -w /ep_site dschien/web deployment/docker-web-prod/entrypoint.sh")
+                "docker run --name web -h %(sys_type)s  -d -p 8000:8000 --link rabbit --link db%(db_suffix)s:db -v `pwd`:/ep_site -w /ep_site dschien/web deployment/docker-web-prod/entrypoint.sh") % env
             if not result.failed:
                 logger.info('container web started')
 
@@ -93,7 +93,7 @@ def start_celery_worker():
     with settings(warn_only=True):
         with cd('ep_site'):
             result = run(
-                'docker run -h ep --name celery_worker -e "C_FORCE_ROOT=true" -p 5555:5555 -d --link rabbit --link db:db -v `pwd`:/ep_site -w /ep_site dschien/web celery -A ep_site worker -l info'
+                'docker run -h %(sys_type)s --name celery_worker -e "C_FORCE_ROOT=true" -p 5555:5555 -d --link rabbit --link db%(db_suffix)s:db -v `pwd`:/ep_site -w /ep_site dschien/web celery -A ep_site worker -l info' % env
             )
             if not result.failed:
                 logger.info('container celery_worker started')
@@ -103,7 +103,7 @@ def start_celery_beat():
     with settings(warn_only=True):
         with cd('ep_site'):
             result = run(
-                'docker run -d -h ep --name celery_beat -e "C_FORCE_ROOT=true" -d --link rabbit --link db:db -v `pwd`:/ep_site -w /ep_site dschien/web celery -A ep_site beat'
+                'docker run -d -h %(sys_type)s --name celery_beat -e "C_FORCE_ROOT=true" -d --link rabbit --link db%(db_suffix)s:db -v `pwd`:/ep_site -w /ep_site dschien/web celery -A ep_site beat' % env
             )
             if not result.failed:
                 logger.info('container celery_beats started')
@@ -123,10 +123,19 @@ def start_db():
     with settings(warn_only=True):
         with cd('ep_site'):
             result = run(
-                'docker run -p 5432:5432 --name db --env-file etc/env -d --volumes-from pg_data postgres:9.4'
+                'docker run -p 5432:5432 --name db%(db_suffix)s --env-file etc/env -d --volumes-from pg_data%(db_suffix)s postgres:9.4' % env
             )
             if not result.failed:
-                logger.info('container celery_beats started')
+                logger.info('container db started')
+
+
+def start_websocket_client():
+    with settings(warn_only=True):
+        with cd('ep_site'):
+            result = run(
+                "docker run -d -h %(sys_type)s --name secure_import -P --link db%(db_suffix)s:db -v `pwd`:/ep_site -w /ep_site dschien/web python manage.py import_secure") % env
+            if not result.failed:
+                logger.info('container websock client started')
 
 
 def recreate_db():
@@ -135,8 +144,16 @@ def recreate_db():
             run('docker stop db')
             run('docker rm db')
             run('docker rm pg_data')
-            run('docker create -v /var/lib/postgresql/data --name pg_data busybox')
-            run('docker run -p 5432:5432 --name db --env-file etc/env -d --volumes-from pg_data_test postgres:9.4')
+            run('docker create -v /var/lib/postgresql/data --name pg_data%(db_suffix)s busybox' % env)
+            run(
+                'docker run -p 5432:5432 --name db%(db_suffix)s --env-file etc/env -d --volumes-from pg_data%(db_suffix)s postgres:9.4' % env)
+
+
+def rebuild_container():
+    with cd('ep_site/deployment/docker-web'):
+        run('docker build -t dschien/web-bare .')
+    with cd('ep_site/deployment/docker-web-prod'):
+        run('docker build -t dschien/web .')
 
 
 def redeploy_container(container_name_or_id=''):
@@ -149,6 +166,8 @@ def redeploy_container(container_name_or_id=''):
         start_web()
     if container_name_or_id == 'celery_worker':
         start_celery_worker()
+    if container_name_or_id == 'celery_beat':
+        start_celery_beat()
     if container_name_or_id == 'rabbit':
         start_rabbit()
     if container_name_or_id == 'db':
