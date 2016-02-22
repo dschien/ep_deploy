@@ -127,9 +127,19 @@ def create_email_on_error_log_alarm():
     )
 
 
-def create_email_on_celery_off_log_alarm():
+def create_celery_alive_alarm():
+    create_alive_log_missing_alarm(name='celery-worker-alive',
+                                   filter_pattern='{ $.message = "celery worker alive" }')
+
+
+def create_secure_client_alive_alarm():
+    create_alive_log_missing_alarm(name='secure-websocket-client-alive',
+                                   filter_pattern='{ $.message = "Secure importer alive" }')
+
+
+def create_alive_log_missing_alarm(name, filter_pattern):
     metricsNamespace = 'LogMetrics'
-    metricName = 'celery-worker-alive' + "_%(sys_type)s" % env
+    metricName = name + "_%(sys_type)s" % env
 
     print colors.cyan('Put metric $(metricName)s' % env)
 
@@ -149,8 +159,8 @@ def create_email_on_celery_off_log_alarm():
     print colors.cyan('Put metric filter celery alive')
     logs_client.put_metric_filter(
         logGroupName=env.log_group_name_ea,
-        filterName='celery-worker-alive',
-        filterPattern='{ $.message = "celery worker alive" }',
+        filterName=name,
+        filterPattern=filter_pattern,
         metricTransformations=[
             {
                 'metricNamespace': metricsNamespace,
