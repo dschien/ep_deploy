@@ -11,7 +11,10 @@ CONFIG_FILE = "ep.cfg"
 config = ConfigParser.RawConfigParser()
 config.read(CONFIG_FILE)
 
+env.update(config._sections['ec2'])
 env.update(config._sections['ep_common'])
+env.update(config._sections['db'])
+env.update(config._sections['secure_server'])
 env.log_group_name_ea = env.log_group_name + "/ea"
 
 
@@ -206,3 +209,67 @@ def create_cpu_alarm():
         Threshold=70,
         ComparisonOperator='GreaterThanThreshold'
     )
+
+
+def create_RDS_instance():
+    """
+    http://boto3.readthedocs.org/en/latest/reference/services/rds.html#RDS.Client.create_db_instance
+    :return:
+    """
+    client = boto3.client('rds')
+    response = client.create_db_instance(
+        DBName=env.db_name,
+        DBInstanceIdentifier=env.db_instance_id + "-%(sys_type)s" % env,
+        AllocatedStorage=16,
+        DBInstanceClass='db.t1.micro',
+        Engine='postgres',
+        MasterUsername=env.db_master_username,
+        MasterUserPassword=env.db_masteruserpassword,
+        # DBSecurityGroups=[
+        #     'string',
+        # ],
+        VpcSecurityGroupIds=[
+            env.db_vpcsecuritygroupid,
+        ],
+        AvailabilityZone='eu-west-1a',
+        DBSubnetGroupName='default',
+        # PreferredMaintenanceWindow='string',
+        # DBParameterGroupName='string',
+        BackupRetentionPeriod=14,
+        # PreferredBackupWindow='string',
+        Port=5432,
+        MultiAZ=False,
+        EngineVersion='9.4.5',
+        AutoMinorVersionUpgrade=True,
+        LicenseModel='postgresql-license',
+        # Iops=123,
+        # OptionGroupName='string',
+        # CharacterSetName='string',
+        PubliclyAccessible=False,
+        # Tags=[
+        #     {
+        #         'Key': 'string',
+        #         'Value': 'string'
+        #     },
+        # ],
+        # DBClusterIdentifier='string',
+        StorageType='standard',
+        # TdeCredentialArn='string',
+        # TdeCredentialPassword='string',
+        StorageEncrypted=False,
+        # KmsKeyId='string',
+        # Domain='string',
+        # CopyTagsToSnapshot=True | False,
+        # MonitoringInterval=123,
+        # MonitoringRoleArn='string',
+        # DomainIAMRoleName='string'
+    )
+
+
+def configure_local_settings():
+    import random
+    env.secret_key = ''.join(
+        [random.SystemRandom().choice('abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*(-_=+)') for i in range(50)])
+    upload_template('local_settings.py',
+                    '/home/ubuntu/ep_site/local_settings.py',
+                    use_sudo=True, template_dir='templates', use_jinja=True, context=env)
