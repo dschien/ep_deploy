@@ -1,11 +1,9 @@
 import ConfigParser
-import os
 
-from fabric import colors
-from fabric.contrib.files import upload_template
-from fabric.utils import apply_lcwd
-from fabric.api import *
 import boto3
+from fabric import colors
+from fabric.api import *
+from fabric.contrib.files import upload_template
 
 CONFIG_FILE = "ep.cfg"
 config = ConfigParser.RawConfigParser()
@@ -15,15 +13,16 @@ env.update(config._sections['ec2'])
 env.update(config._sections['ep_common'])
 env.update(config._sections['db'])
 env.update(config._sections['secure_server'])
-env.log_group_name_ea = env.log_group_name + "/ea"
 
 
 def prod():
     env.update(config._sections['energyportal'])
+    env.log_group_name_ea = env.log_group_name + "/ea/prod"
 
 
 def staging():
     env.update(config._sections['energyportal_staging'])
+    env.log_group_name_ea = env.log_group_name + "/ea/staging"
 
 
 def install_logs_agent():
@@ -58,6 +57,12 @@ def configure_logs_agent():
                     '/var/awslogs/etc/awslogs.conf',
                     use_sudo=True, template_dir='templates', use_jinja=True, context=env)
     sudo('sudo service awslogs restart')
+
+
+def setup_alarms():
+    create_celery_alive_alarm()
+    create_secure_client_alive_alarm()
+    create_email_on_error_log_alarm()
 
 
 def create_email_on_error_log_alarm():
@@ -108,8 +113,8 @@ def create_email_on_error_log_alarm():
     print colors.cyan('Put metric alarm, email on error')
 
     response = cloudwatch_client.put_metric_alarm(
-        AlarmName='email on error',
-        AlarmDescription='email on error',
+        AlarmName='email on error ' + "_%(sys_type)s" % env,
+        AlarmDescription='email on error' + "_%(sys_type)s" % env,
         ActionsEnabled=True,
 
         AlarmActions=[
@@ -128,27 +133,27 @@ def create_email_on_error_log_alarm():
 
 
 def create_celery_alive_alarm():
-    create_alive_log_missing_alarm(name='celery-worker-alive',
-                                   filter_pattern='{ $.message = "celery worker alive" }')
+    _create_alive_log_missing_alarm(name='celery-worker-alive',
+                                    filter_pattern='{ $.message = "celery worker alive" }')
 
 
 def create_secure_client_alive_alarm():
-    create_alive_log_missing_alarm(name='secure-websocket-client-alive',
-                                   filter_pattern='{ $.message = "Secure importer alive" }')
+    _create_alive_log_missing_alarm(name='secure-websocket-alive',
+                                    filter_pattern='{ $.message = "Secure importer alive" }')
 
 
-def create_alive_log_missing_alarm(name, filter_pattern):
+def _create_alive_log_missing_alarm(name, filter_pattern):
     metricsNamespace = 'LogMetrics'
-    metricName = name + "_%(sys_type)s" % env
 
     print colors.cyan('Put metric $(metricName)s' % env)
 
     cloudwatch_client = boto3.client('cloudwatch')
+    metric_name = name + " %(sys_type)s" % env
     response = cloudwatch_client.put_metric_data(
         Namespace=metricsNamespace,
         MetricData=[
             {
-                'MetricName': metricName,
+                'MetricName': metric_name,
                 'Unit': 'Count',
                 'Value': 1
             },
@@ -156,32 +161,32 @@ def create_alive_log_missing_alarm(name, filter_pattern):
     )
 
     logs_client = boto3.client('logs')
-    print colors.cyan('Put metric filter celery alive')
+    print colors.cyan('Put metric filter: %s' % metric_name)
     logs_client.put_metric_filter(
         logGroupName=env.log_group_name_ea,
-        filterName=name,
+        filterName=name + "_%(sys_type)s" % env,
         filterPattern=filter_pattern,
         metricTransformations=[
             {
                 'metricNamespace': metricsNamespace,
                 'metricValue': '1',
-                'metricName': metricName,
+                'metricName': metric_name,
             }]
 
     )
 
-    print colors.cyan('Put metric alarm, email on error')
+    print colors.cyan('Put metric alarm %s' % name)
 
-    response = cloudwatch_client.put_metric_alarm(
-        AlarmName='email on not alive',
-        AlarmDescription='email on not alive',
+    cloudwatch_client.put_metric_alarm(
+        AlarmName='email {} {}'.format(env.sys_type, name),
+        AlarmDescription='email {} {}'.format(env.sys_type, name),
         ActionsEnabled=True,
 
         AlarmActions=[
             env.aws_sns_arn_error_email,
         ],
 
-        MetricName=metricName,
+        MetricName=metric_name,
         Namespace=metricsNamespace,
         Statistic='Sum',
         Period=300,

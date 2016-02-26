@@ -130,6 +130,12 @@ def start_db():
 
 
 def start_websocket_client():
+    container_name_or_id = 'secure_import'
+    state = inspect_container(container_name_or_id)
+    if state == container_state['RUNNING']:
+        stop_container(container_name_or_id)
+    remove_container(container_name_or_id)
+
     with settings(warn_only=True):
         with cd('ep_site'):
             result = run(
