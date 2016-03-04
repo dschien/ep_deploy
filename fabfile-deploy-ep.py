@@ -34,15 +34,18 @@ def change_hostname():
 
 
 def config_nginx():
+    with cd('/etc/ssl/certs'):
+        sudo('openssl dhparam -out dhparam.pem 4096')
+
     template_dir = 'templates/'
     upload_template('nginx.conf',
                     '/etc/nginx/nginx.conf',
                     use_sudo=True, template_dir=template_dir)
     if not exists('/etc/nginx/sites-enabled/'):
         sudo('mkdir /etc/nginx/sites-enabled/')
-    upload_template('docker_unicorn.conf',
-                    '/etc/nginx/sites-enabled/docker_unicorn.conf',
-                    use_sudo=True, template_dir=template_dir, use_jinja=True, context=env)
+    upload_template('docker_gunicorn.conf',
+                    '/etc/nginx/sites-enabled/docker_gunicorn.conf',
+                    use_sudo=True, template_dir=template_dir, use_jinja=True, context=env, backup=False)
 
     if not exists('/etc/nginx/ssl/'):
         sudo('mkdir /etc/nginx/ssl/')
@@ -54,3 +57,5 @@ def config_nginx():
         '/Users/csxds/Documents/iodicus-certs/2nd_iodicus_signing_request/prepare_for_deployment/iodicus_net.key',
         '/etc/nginx/ssl/%(ssl_cert_key_target_filename)s' % env,
         use_sudo=True)
+
+    sudo('service nginx restart')

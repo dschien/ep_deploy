@@ -79,7 +79,7 @@ def start_web():
     with settings(warn_only=True):
         with cd('ep_site'):
             result = run(
-                "docker run --name web -h %(sys_type)s  -d -p 8000:8000 --env CONTAINER_NAME=web --link rabbit  -v `pwd`:/ep_site -w /ep_site dschien/web deployment/docker-web-prod/entrypoint.sh" % env)
+                "docker run --name web -h %(sys_type)s  -d -p 8000:8000 --env CONTAINER_NAME=web --link rabbit --link memcache  -v `pwd`:/ep_site -w /ep_site dschien/web deployment/docker-web-prod/entrypoint.sh" % env)
             if not result.failed:
                 logger.info('container web started')
 
@@ -93,7 +93,7 @@ def start_celery_worker():
     with settings(warn_only=True):
         with cd('ep_site'):
             result = run(
-                'docker run -h %(sys_type)s --name celery_worker -e "C_FORCE_ROOT=true" -p 5555:5555 --env CONTAINER_NAME=celery_worker -d --link rabbit  -v `pwd`:/ep_site -w /ep_site dschien/web celery -A ep_site worker -l info' % env
+                'docker run -h %(sys_type)s --name celery_worker -e "C_FORCE_ROOT=true" -p 5555:5555 --env CONTAINER_NAME=celery_worker -d --link rabbit --link memcache  -v `pwd`:/ep_site -w /ep_site dschien/web celery -A ep_site worker -l info' % env
             )
             if not result.failed:
                 logger.info('container celery_worker started')
@@ -103,7 +103,7 @@ def start_celery_beat():
     with settings(warn_only=True):
         with cd('ep_site'):
             result = run(
-                'docker run -d -h %(sys_type)s --name celery_beat -e "C_FORCE_ROOT=true" -d --link rabbit --env CONTAINER_NAME=celery_beat -v `pwd`:/ep_site -w /ep_site dschien/web celery -A ep_site beat' % env
+                'docker run -d -h %(sys_type)s --name celery_beat -e "C_FORCE_ROOT=true" -d --link rabbit --link memcache --env CONTAINER_NAME=celery_beat -v `pwd`:/ep_site -w /ep_site dschien/web celery -A ep_site beat' % env
             )
             if not result.failed:
                 logger.info('container celery_beats started')
@@ -117,6 +117,16 @@ def start_rabbit():
             )
             if not result.failed:
                 logger.info('container rabbit started')
+
+
+def start_memcache():
+    with settings(warn_only=True):
+        with cd('ep_site'):
+            result = run(
+                'docker run -p 11211:11211 --name memcache -d memcached'
+            )
+            if not result.failed:
+                logger.info('container memcache started')
 
 
 def start_db():
@@ -139,8 +149,8 @@ def start_websocket_client():
     with settings(warn_only=True):
         with cd('ep_site'):
             result = run(
-                "docker run -d -h %(sys_type)s --name secure_import -P  -v `pwd`:/ep_site --env CONTAINER_NAME=secure_client -w /ep_site dschien/web python manage.py import_secure" % env)
-                # "docker run -d -h %(sys_type)s --name secure_import -P --link db%(db_suffix)s:db -v `pwd`:/ep_site -w /ep_site dschien/web python manage.py import_secure" % env)
+                "docker run -d -h %(sys_type)s --name secure_import -P --link memcache  -v `pwd`:/ep_site --env CONTAINER_NAME=secure_client -w /ep_site dschien/web python manage.py import_secure" % env)
+            # "docker run -d -h %(sys_type)s --name secure_import -P --link db%(db_suffix)s:db -v `pwd`:/ep_site -w /ep_site dschien/web python manage.py import_secure" % env)
             if not result.failed:
                 logger.info('container websock client started')
 
@@ -179,6 +189,8 @@ def redeploy_container(container_name_or_id=''):
         start_rabbit()
     if container_name_or_id == 'db':
         start_db()
+    if container_name_or_id == 'memcache':
+        start_memcache()
 
 
 def update_site():
@@ -188,8 +200,20 @@ def update_site():
     """
     update()
 
-    for container in ['rabbit']:
+    for container in ['rabbit', 'memcache']:
         redeploy_container(container)
 
     for container in ['web', 'celery_worker', 'celery_beat']:
         redeploy_container(container)
+
+
+def start_local_containers():
+    local('docker run -d --hostname rabbit --name rabbit rabbitmq:3')
+    local('docker run -p 5432:5432 --name db --env-file etc/env -d --volumes-from pg_data postgres:9.4')
+    local('docker run -p 11211:11211 --name memcache -d memcached')
+
+
+def complete_update():
+    update()
+    rebuild_container()
+    update_site()

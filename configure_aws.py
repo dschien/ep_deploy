@@ -13,6 +13,7 @@ env.update(config._sections['ec2'])
 env.update(config._sections['ep_common'])
 env.update(config._sections['db'])
 env.update(config._sections['secure_server'])
+env.update(config._sections['messaging.iodicus.net'])
 
 
 def prod():
@@ -124,7 +125,7 @@ def create_email_on_error_log_alarm():
         MetricName=metricName,
         Namespace=metricsNamespace,
         Statistic='Sum',
-        Period=300,
+        Period=900,
         Unit='Count',
         EvaluationPeriods=1,
         Threshold=0,
@@ -149,6 +150,7 @@ def _create_alive_log_missing_alarm(name, filter_pattern):
 
     cloudwatch_client = boto3.client('cloudwatch')
     metric_name = name + " %(sys_type)s" % env
+
     response = cloudwatch_client.put_metric_data(
         Namespace=metricsNamespace,
         MetricData=[

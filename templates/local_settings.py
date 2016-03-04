@@ -19,3 +19,5 @@ SECURE_SERVER_PASSWORD = '{{ secure_server_password }}'
 DB_HOST = '{{ db_host }}'
 DB_PASSWORD = '{{ db_masteruserpassword }}'
 DB_USER = '{{ db_master_username }}'
+
+MEMCACHE_HOST = 'memcache:11211'

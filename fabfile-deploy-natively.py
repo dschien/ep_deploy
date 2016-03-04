@@ -31,7 +31,6 @@ env.hosts = [config.get('ec2', 'host')]
 AWS_ACCESS_KEY_ID = config.get('ec2', 'AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = config.get('ec2', 'AWS_SECRET_ACCESS_KEY')
 
-
 # from django.utils.crypto import get_random_string
 # chars = 'abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*(-_=+)'
 secret_key = config.get('ec2', 'secret_key')
@@ -140,7 +139,6 @@ def django_deploy():
 
         run('sed -i -e "s/INSERT_SECKEY_HERE/%(secret_key)s/g" ep_site/ep_site/local_settings.py' % {
             'secret_key': AWS_SECRET_ACCESS_KEY})
-
 
 
 def django_update_actions():
