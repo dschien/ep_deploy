@@ -200,11 +200,16 @@ def update_site():
     """
     update()
 
+    for container in ['web', 'celery_worker', 'celery_beat']:
+        stop_container(container)
+
     for container in ['rabbit', 'memcache']:
         redeploy_container(container)
 
     for container in ['web', 'celery_worker', 'celery_beat']:
         redeploy_container(container)
+
+    start_websocket_client()
 
 
 def start_local_containers():
