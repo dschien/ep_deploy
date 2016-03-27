@@ -1,5 +1,14 @@
 __author__ = 'schien'
 
+
+import configparser, itertools, os
+
+CONFIG_FILE = "etc/docker-env"
+cfg = configparser.ConfigParser()
+cfg.read_file(itertools.chain(['[global]'], open(CONFIG_FILE)))
+config = cfg['global']
+
+
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = '{{ secret_key }}'
 
@@ -21,3 +30,8 @@ DB_PASSWORD = '{{ db_masteruserpassword }}'
 DB_USER = '{{ db_master_username }}'
 
 MEMCACHE_HOST = 'memcache:11211'
+
+INFLUXDB_PASSWORD = config['INFLUXDB_INIT_PWD']
+INFLUXDB_USER = config['ADMIN_USER']
+INFLUXDB_PORT = 8086
+INFLUXDB_HOST = 'influxdb'

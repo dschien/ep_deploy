@@ -1,0 +1,14 @@
+# rename this to env
+# pg - only used when running pg in docker/ in current
+# deployment this is not the case...
+POSTGRES_USER={{ db_master_username }}
+POSTGRES_PASSWORD={{ db_masteruserpassword }}
+
+# rabbit
+RABBITMQ_DEFAULT_USER=iodicus
+RABBITMQ_DEFAULT_PASS=adsczwda
+
+# influx
+ADMIN_USER={{ influxdb_admin_user }}
+INFLUXDB_INIT_PWD={{ influxdb_init_pwd }}
+PRE_CREATE_DB=ep

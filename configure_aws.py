@@ -12,6 +12,7 @@ config.read(CONFIG_FILE)
 env.update(config._sections['ec2'])
 env.update(config._sections['ep_common'])
 env.update(config._sections['db'])
+env.update(config._sections['influxdb'])
 env.update(config._sections['secure_server'])
 env.update(config._sections['messaging.iodicus.net'])
 
@@ -289,4 +290,9 @@ def configure_local_settings():
         [random.SystemRandom().choice('abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*(-_=+)') for i in range(50)])
     upload_template('local_settings.py',
                     '/home/ubuntu/ep_site/local_settings.py',
+                    use_sudo=True, template_dir='templates', use_jinja=True, context=env)
+
+def configure_docker_env():
+    upload_template('docker-env',
+                    '/home/ubuntu/ep_site/etc/docker-env',
                     use_sudo=True, template_dir='templates', use_jinja=True, context=env)

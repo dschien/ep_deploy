@@ -133,7 +133,19 @@ def start_db():
     with settings(warn_only=True):
         with cd('ep_site'):
             result = run(
-                'docker run -p 5432:5432 --name db%(db_suffix)s --env-file etc/env -d --volumes-from pg_data%(db_suffix)s postgres:9.4' % env
+                'docker run -p 5432:5432 --name db%(db_suffix)s --env-file etc/docker-env -d --volumes-from pg_data%(db_suffix)s postgres:9.4' % env
+            )
+            if not result.failed:
+                logger.info('container db started')
+
+
+def start_influxdb():
+    with settings(warn_only=True):
+        with cd('ep_site'):
+            result = run(
+                'docker create --volume=/data --name influxdb_data busybox'
+                # 'docker run -p 5432:5432 --name db%(db_suffix)s --env-file etc/docker-env -d --volumes-from pg_data%(db_suffix)s postgres:9.4' % env
+                'docker run -d -p 8083 -p 8086 --env-file etc/docker-env --name influxdb --volumes-from influxdb_data dschien/influxdb:latest' % env
             )
             if not result.failed:
                 logger.info('container db started')
@@ -163,10 +175,12 @@ def recreate_db():
             run('docker rm pg_data')
             run('docker create -v /var/lib/postgresql/data --name pg_data%(db_suffix)s busybox' % env)
             run(
-                'docker run -p 5432:5432 --name db%(db_suffix)s --env-file etc/env -d --volumes-from pg_data%(db_suffix)s postgres:9.4' % env)
+                'docker run -p 5432:5432 --name db%(db_suffix)s --env-file etc/docker-env -d --volumes-from pg_data%(db_suffix)s postgres:9.4' % env)
 
 
 def rebuild_container():
+    with cd('ep_site/deployment/influx/0.10'):
+        run('docker build -t dschien/influxdb .')
     with cd('ep_site/deployment/docker-web'):
         run('docker build -t dschien/web-bare .')
     with cd('ep_site/deployment/docker-web-prod'):
@@ -214,7 +228,7 @@ def update_site():
 
 def start_local_containers():
     local('docker run -d --hostname rabbit --name rabbit rabbitmq:3')
-    local('docker run -p 5432:5432 --name db --env-file etc/env -d --volumes-from pg_data postgres:9.4')
+    local('docker run -p 5432:5432 --name db --env-file etc/docker-env -d --volumes-from pg_data postgres:9.4')
     local('docker run -p 11211:11211 --name memcache -d memcached')
 
 
