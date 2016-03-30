@@ -13,4 +13,6 @@ ADMIN_USER={{ influxdb_admin_user }}
 INFLUXDB_INIT_PWD={{ influxdb_init_pwd }}
 PRE_CREATE_DB=ep
 
-GF_SECURITY_ADMIN_PASSWORD={{ grafana_admin_pw }}
+# GF_SECURITY_ADMIN_PASSWORD={{ grafana_admin_pw }}
+# GF_SECURITY_ADMIN_USER=schien
+GF_SERVER_ROOT_URL=https://ep.iodicus.net/grafana

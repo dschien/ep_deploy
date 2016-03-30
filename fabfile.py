@@ -82,7 +82,7 @@ def start_web():
     with settings(warn_only=True):
         with cd('ep_site'):
             result = run(
-                "docker run --name web -h %(sys_type)s  -d -p 8000:8000 --env CONTAINER_NAME=web --link influxdb --link rabbit --link memcache  -v `pwd`:/ep_site -w /ep_site dschien/web deployment/docker-web-prod/entrypoint.sh" % env)
+                "docker run --name web -h %(sys_type)s  -d -p 8000:8000 --env CONTAINER_NAME=web --link rabbit --link memcache  -v `pwd`:/ep_site -w /ep_site dschien/web deployment/docker-web-prod/entrypoint.sh" % env)
             if not result.failed:
                 logger.info('container web started')
 
@@ -96,7 +96,7 @@ def start_celery_worker():
     with settings(warn_only=True):
         with cd('ep_site'):
             result = run(
-                'docker run -h %(sys_type)s --name celery_worker -e "C_FORCE_ROOT=true" -p 5555:5555 --env CONTAINER_NAME=celery_worker -d --link influxdb --link rabbit --link memcache  -v `pwd`:/ep_site -w /ep_site dschien/web celery -A ep_site worker -l info' % env
+                'docker run -h %(sys_type)s --name celery_worker -e "C_FORCE_ROOT=true" -p 5555:5555 --env CONTAINER_NAME=celery_worker -d  --link rabbit --link memcache  -v `pwd`:/ep_site -w /ep_site dschien/web celery -A ep_site worker -l info' % env
             )
             if not result.failed:
                 logger.info('container celery_worker started')
@@ -106,7 +106,7 @@ def start_celery_beat():
     with settings(warn_only=True):
         with cd('ep_site'):
             result = run(
-                'docker run -d -h %(sys_type)s --name celery_beat -e "C_FORCE_ROOT=true" -d --link influxdb --link rabbit --link memcache --env CONTAINER_NAME=celery_beat -v `pwd`:/ep_site -w /ep_site dschien/web celery -A ep_site beat' % env
+                'docker run -d -h %(sys_type)s --name celery_beat -e "C_FORCE_ROOT=true" -d  --link rabbit --link memcache --env CONTAINER_NAME=celery_beat -v `pwd`:/ep_site -w /ep_site dschien/web celery -A ep_site beat' % env
             )
             if not result.failed:
                 logger.info('container celery_beats started')
@@ -136,7 +136,7 @@ def start_db():
     with settings(warn_only=True):
         with cd('ep_site'):
             result = run(
-                'docker run -p 5432:5432 --name db%(db_suffix)s --env-file etc/docker-env -d --volumes-from pg_data%(db_suffix)s postgres:9.4' % env
+                'docker run -p 5432:5432 --name db%(db_suffix)s --env-file=etc/docker-env -d --volumes-from pg_data%(db_suffix)s postgres:9.4' % env
             )
             if not result.failed:
                 logger.info('container db started')
@@ -147,7 +147,7 @@ def start_influxdb():
         with cd('ep_site'):
             result = run(
                 # 'docker run -p 5432:5432 --name db%(db_suffix)s --env-file etc/docker-env -d --volumes-from pg_data%(db_suffix)s postgres:9.4' % env
-                'docker run -d -p 8083 -p 8086 --env-file etc/docker-env --name influxdb --volumes-from influxdb_data dschien/influxdb:latest' % env
+                'docker run -d -p 8083:8083 -p 8086:8086 --env-file=etc/docker-env --name influxdb --volumes-from influxdb_data dschien/influxdb:latest' % env
             )
             if not result.failed:
                 logger.info('container db started')
@@ -156,11 +156,10 @@ def start_grafana():
     with settings(warn_only=True):
         with cd('ep_site'):
             result = run(
-                # 'docker run -p 5432:5432 --name db%(db_suffix)s --env-file etc/docker-env -d --volumes-from pg_data%(db_suffix)s postgres:9.4' % env
-                'docker run -d -p 3000:3000  --env-file etc/docker-env --link influxdb --name grafana --volumes-from grafana_data grafana/grafana:latest' % env
+                'docker run -d -p 3000:3000  --env-file=etc/docker-env  --name grafana --volumes-from grafana_data grafana/grafana:latest' % env
             )
             if not result.failed:
-                logger.info('container db started')
+                logger.info('container grafana started')
 
 
 def start_websocket_client():
@@ -173,7 +172,7 @@ def start_websocket_client():
     with settings(warn_only=True):
         with cd('ep_site'):
             result = run(
-                "docker run -d -h %(sys_type)s --name secure_import -P --link influxdb --link memcache  -v `pwd`:/ep_site --env CONTAINER_NAME=secure_client -w /ep_site dschien/web python manage.py import_secure" % env)
+                "docker run -d -h %(sys_type)s --name secure_import -P  --link memcache  -v `pwd`:/ep_site --env CONTAINER_NAME=secure_client -w /ep_site dschien/web python manage.py import_secure" % env)
             # "docker run -d -h %(sys_type)s --name secure_import -P --link db%(db_suffix)s:db -v `pwd`:/ep_site -w /ep_site dschien/web python manage.py import_secure" % env)
             if not result.failed:
                 logger.info('container websock client started')
@@ -187,7 +186,7 @@ def recreate_db():
             run('docker rm pg_data')
             run('docker create -v /var/lib/postgresql/data --name pg_data%(db_suffix)s busybox' % env)
             run(
-                'docker run -p 5432:5432 --name db%(db_suffix)s --env-file etc/docker-env -d --volumes-from pg_data%(db_suffix)s postgres:9.4' % env)
+                'docker run -p 5432:5432 --name db%(db_suffix)s --env-file=etc/docker-env -d --volumes-from pg_data%(db_suffix)s postgres:9.4' % env)
 
 
 def rebuild_container():
@@ -220,6 +219,8 @@ def redeploy_container(container_name_or_id=''):
         start_memcache()
     if container_name_or_id == 'influxdb':
         start_influxdb()
+    if container_name_or_id == 'grafana':
+        start_grafana()
 
 
 def update_site():
@@ -232,7 +233,7 @@ def update_site():
     for container in ['web', 'celery_worker', 'celery_beat']:
         stop_container(container)
 
-    for container in ['rabbit', 'memcache','influxdb']:
+    for container in ['rabbit', 'memcache']:
         redeploy_container(container)
 
     for container in ['web', 'celery_worker', 'celery_beat']:
@@ -243,7 +244,7 @@ def update_site():
 
 def start_local_containers():
     local('docker run -d --hostname rabbit --name rabbit rabbitmq:3')
-    local('docker run -p 5432:5432 --name db --env-file etc/docker-env -d --volumes-from pg_data postgres:9.4')
+    local('docker run -p 5432:5432 --name db --env-file=etc/docker-env -d --volumes-from pg_data postgres:9.4')
     local('docker run -p 11211:11211 --name memcache -d memcached')
 
 

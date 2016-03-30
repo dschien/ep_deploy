@@ -33,9 +33,10 @@ def change_hostname():
     run('cat %s > /etc/hostname' % env.host)
 
 
-def config_nginx():
-    with cd('/etc/ssl/certs'):
-        sudo('openssl dhparam -out dhparam.pem 4096')
+def config_nginx(regen_dhparm=False):
+    if regen_dhparm:
+        with cd('/etc/ssl/certs'):
+            sudo('openssl dhparam -out dhparam.pem 4096')
 
     template_dir = 'templates/'
     upload_template('nginx.conf',
