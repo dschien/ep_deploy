@@ -285,12 +285,32 @@ def create_RDS_instance():
 
 
 def configure_local_settings():
+    # get IP of influxdb host
+    instance_name = "influxdb"
+
+    influxdb_ip = get_instance_private_ip(instance_name)
+
+    env['influx_db_host'] = influxdb_ip
+
+
     import random
     env.secret_key = ''.join(
         [random.SystemRandom().choice('abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*(-_=+)') for i in range(50)])
     upload_template('local_settings.py',
                     '/home/ubuntu/ep_site/local_settings.py',
                     use_sudo=True, template_dir='templates', use_jinja=True, context=env)
+
+
+def get_instance_private_ip(instance_name):
+    import boto.ec2
+    REGION = config.get('ec2', 'REGION')
+    conn = boto.ec2.connect_to_region(REGION)
+    reservations = conn.get_all_instances(filters={"tag:Name": instance_name})
+    instances = [i for r in reservations for i in r.instances]
+    assert len(instances) == 1
+    influxdb_ip = instances[0].private_ip_address
+    return influxdb_ip
+
 
 def configure_docker_env():
     upload_template('docker-env',
