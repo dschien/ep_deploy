@@ -229,6 +229,35 @@ def create_cpu_alarm():
     )
 
 
+def create_memory_alarm(instance_id):
+    client = boto3.client('cloudwatch')
+    instance_id = {'instance_id': instance_id if instance_id else env['instance_id']}
+    response = client.put_metric_alarm(
+        AlarmName='memory-mon-%(instance_id)s' % instance_id,
+        AlarmDescription='Alarm when memory exceeds 70 percent',
+        ActionsEnabled=True,
+
+        AlarmActions=[
+            env.aws_sns_arn_error_email,
+        ],
+
+        MetricName='MemoryUtilization',
+        Namespace='System/Linux',
+        Statistic='Average',
+        Dimensions=[
+            {
+                'Name': 'InstanceId',
+                'Value': '%(instance_id)s' % instance_id
+            },
+        ],
+        Period=300,
+        Unit='Percent',
+        EvaluationPeriods=2,
+        Threshold=70,
+        ComparisonOperator='GreaterThanThreshold'
+    )
+
+
 def create_RDS_instance():
     """
     http://boto3.readthedocs.org/en/latest/reference/services/rds.html#RDS.Client.create_db_instance
@@ -292,7 +321,6 @@ def configure_local_settings():
 
     env['influx_db_host'] = influxdb_ip
 
-
     import random
     env.secret_key = ''.join(
         [random.SystemRandom().choice('abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*(-_=+)') for i in range(50)])
@@ -316,3 +344,59 @@ def configure_docker_env():
     upload_template('docker-env',
                     '/home/ubuntu/ep_site/etc/docker-env',
                     use_sudo=True, template_dir='templates', use_jinja=True, context=env)
+
+
+def _marker(marker):
+    return ' # MARKER:%s' % marker if marker else ''
+
+
+def _get_current():
+    with settings(hide('warnings', 'stdout'), warn_only=True):
+        output = run('crontab -l')
+        return output if output.succeeded else ''
+
+
+def crontab_set(content):
+    """ Sets crontab content """
+    run("echo '%s'|crontab -" % content)
+
+
+def crontab_show():
+    """ Shows current crontab """
+    puts(_get_current())
+
+
+def crontab_add(content, marker=None):
+    """ Adds line to crontab. Line can be appended with special marker
+    comment so it'll be possible to reliably remove or update it later. """
+    old_crontab = _get_current()
+    crontab_set(old_crontab + '\n' + content + _marker(marker))
+
+
+def crontab_remove(marker):
+    """ Removes a line added and marked using crontab_add. """
+    lines = [line for line in _get_current().splitlines()
+             if line and not line.endswith(_marker(marker))]
+    crontab_set("\n".join(lines))
+
+
+def crontab_update(content, marker):
+    """ Adds or updates a line in crontab. """
+    crontab_remove(marker)
+    crontab_add(content, marker)
+
+
+def install_aws_log_agent():
+    """
+    Following this guide: http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/mon-scripts.html
+    :return:
+    """
+    run('sudo apt-get update')
+    run('sudo apt-get -y install unzip')
+    run('sudo apt-get -y install libwww-perl libdatetime-perl')
+    run('curl http://aws-cloudwatch.s3.amazonaws.com/downloads/CloudWatchMonitoringScripts-1.2.1.zip -O')
+    run('unzip CloudWatchMonitoringScripts-1.2.1.zip')
+    run('rm CloudWatchMonitoringScripts-1.2.1.zip')
+    run('cd aws-scripts-mon')
+    crontab_add(
+        '*/5 * * * * ~/aws-scripts-mon/mon-put-instance-data.pl --mem-util --disk-space-util --disk-path=/ --from-cron')

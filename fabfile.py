@@ -152,6 +152,7 @@ def start_influxdb():
             if not result.failed:
                 logger.info('container db started')
 
+
 def start_grafana():
     with settings(warn_only=True):
         with cd('ep_site'):
@@ -190,9 +191,9 @@ def recreate_db():
 
 
 def rebuild_container():
-    with cd('ep_site/deployment/influx/0.10'):
-        run('docker build -t dschien/influxdb .')
-        run('docker create --volume=/data --name influxdb_data busybox')
+    # with cd('ep_site/deployment/influx/0.10'):
+    #     run('docker build -t dschien/influxdb .')
+    #     run('docker create --volume=/data --name influxdb_data busybox')
     with cd('ep_site/deployment/docker-web'):
         run('docker build -t dschien/web-bare .')
     with cd('ep_site/deployment/docker-web-prod'):
@@ -223,12 +224,13 @@ def redeploy_container(container_name_or_id=''):
         start_grafana()
 
 
-def update_site():
+def update_site(pull=True):
     """
     Pull from git and restart docker containers
     :return:
     """
-    update()
+    if pull:
+        update()
 
     for container in ['web', 'celery_worker', 'celery_beat']:
         stop_container(container)
