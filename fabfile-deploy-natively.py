@@ -183,10 +183,10 @@ def install_py_deps():
         run('pip install -r requirements.txt')
 
 
-def copy_projects():
-    with cd('coms20805'):
-        run('git pull')
-        run('cp -R client_projects_2015/ /home/web/HTML/Teaching/Resources/COMS20805')
+# def copy_projects():
+#     with cd('coms20805'):
+#         run('git pull')
+#         run('cp -R client_projects_2015/ /home/web/HTML/Teaching/Resources/COMS20805')
 
 
 def sub_get_requirements():

@@ -32,6 +32,35 @@ def staging():
 def change_hostname():
     run('cat %s > /etc/hostname' % env.host)
 
+def clone():
+    run('git clone --recursive git@github.com:dschien/ep_site.git')
+    with cd('ep_site'):
+        run('mkdir log')
+
+
+def deploy():
+    """
+    install docker and nginx
+    :return:
+    """
+    sudo('apt-get update')
+    sudo('apt-get -y install nginx')
+    sudo('apt-get -y install apt-transport-https ca-certificates')
+    sudo('apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D')
+    sudo('echo "deb https://apt.dockerproject.org/repo ubuntu-trusty main" | sudo tee /etc/apt/sources.list.d/docker.list')
+    sudo('apt-get update')
+    sudo('apt-get -y install docker-engine')
+
+
+def configure_docker():
+    """
+    option
+    :return:
+    """
+    sudo('groupadd docker')
+    sudo('usermod -aG docker ubuntu')
+
+
 
 def config_nginx(regen_dhparm=False):
     if regen_dhparm:

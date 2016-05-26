@@ -14,6 +14,7 @@ env.update(config._sections['ep_common'])
 env.update(config._sections['db'])
 env.update(config._sections['influxdb'])
 env.update(config._sections['secure_server'])
+env.update(config._sections['prefect'])
 env.update(config._sections['messaging.iodicus.net'])
 
 
@@ -344,6 +345,13 @@ def configure_docker_env():
     upload_template('docker-env',
                     '/home/ubuntu/ep_site/etc/docker-env',
                     use_sudo=True, template_dir='templates', use_jinja=True, context=env)
+
+
+
+def configure():
+
+    configure_local_settings()
+    configure_docker_env()
 
 
 def _marker(marker):

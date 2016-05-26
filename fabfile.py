@@ -231,7 +231,10 @@ def update_site(pull=True):
     """
     if pull:
         update()
+    restart_containers()
 
+
+def restart_containers():
     for container in ['web', 'celery_worker', 'celery_beat']:
         stop_container(container)
 
@@ -254,3 +257,7 @@ def complete_update():
     update()
     rebuild_container()
     update_site()
+
+
+def initial_container_deployment():
+    run('docker create -v /var/lib/rabbitmq --name celery_rabbit_data busybox')

@@ -41,3 +41,10 @@ INFLUXDB_PORT = 8086
 INFLUXDB_HOST = '{{ influx_db_host }}'
 
 LOG_LEVEL = '{{ log_level }}'
+
+PREFECT_API_TOKEN_GOLDNEY = '{{ prefect_api_token_goldney }}'
+PREFECT_API_TOKEN_BADOCK = '{{ prefect_api_token_badock }}'
+
+RAYLEIGH_TOKEN = ''
+RAYLEIGH_CLIENT_ID = ''
+RAYLEIGH_APP_ID = ''
