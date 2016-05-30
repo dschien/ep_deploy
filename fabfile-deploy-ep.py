@@ -32,6 +32,7 @@ def staging():
 def change_hostname():
     run('cat %s > /etc/hostname' % env.host)
 
+
 def clone():
     run('git clone --recursive git@github.com:dschien/ep_site.git')
     with cd('ep_site'):
@@ -46,8 +47,10 @@ def deploy():
     sudo('apt-get update')
     sudo('apt-get -y install nginx')
     sudo('apt-get -y install apt-transport-https ca-certificates')
-    sudo('apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D')
-    sudo('echo "deb https://apt.dockerproject.org/repo ubuntu-trusty main" | sudo tee /etc/apt/sources.list.d/docker.list')
+    sudo(
+        'apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D')
+    sudo(
+        'echo "deb https://apt.dockerproject.org/repo ubuntu-trusty main" | sudo tee /etc/apt/sources.list.d/docker.list')
     sudo('apt-get update')
     sudo('apt-get -y install docker-engine')
 
@@ -61,6 +64,18 @@ def configure_docker():
     sudo('usermod -aG docker ubuntu')
 
 
+def install_python():
+    run('mkdir -p local/python-3.5.1')
+    run('wget https://www.python.org/ftp/python/3.5.1/Python-3.5.1.tgz')
+    run('tar -zxvf Python-3.5.1.tgz')
+    with cd('Python-3.5.1'):
+        run('./configure --prefix=$HOME/local/python-3.5.1/')
+        run('make')
+        run('make install')
+
+    run('~/local/python-3.5.1/bin/pyvenv venv35')
+
+    sudo('apt-get -y install libmemcached-dev')
 
 def config_nginx(regen_dhparm=False):
     if regen_dhparm:
