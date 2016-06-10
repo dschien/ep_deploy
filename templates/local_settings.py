@@ -24,9 +24,7 @@ AWS_SECRET_ACCESS_KEY = '{{ aws_secret_access_key }}'
 
 IODICUS_MESSAGING_PASSWORD = '{{ messaging_password }}'
 
-SECURE_SERVER_URL = '{{ secure_server_url }}'
-SECURE_SERVER_USER = '{{ secure_server_user }}'
-SECURE_SERVER_PASSWORD = '{{ secure_server_password }}'
+SECURE_SERVERS = '{{ secure_server_dictionary }}'
 
 DB_HOST = '{{ db_host }}'
 DB_PASSWORD = '{{ db_masteruserpassword }}'
