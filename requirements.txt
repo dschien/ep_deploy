@@ -2,3 +2,4 @@ fabric
 boto3
 configparser
 pika
+boto
