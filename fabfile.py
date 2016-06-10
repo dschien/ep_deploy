@@ -3,6 +3,8 @@ import logging
 
 from fabric.api import *
 
+from configure_aws import get_instance_by_name
+
 CONFIG_FILE = "ep.cfg"
 config = ConfigParser.RawConfigParser()
 config.read(CONFIG_FILE)
@@ -16,6 +18,14 @@ def prod():
 
 
 def staging():
+    instance = get_instance_by_name('ep_staging')
+    ip_address = instance.ip_address
+    if not config._sections['energyportal_staging']['hosts'] == ip_address:
+        config.set('energyportal_staging', 'hosts', ip_address)
+        # Writing our configuration file to CONFIG_FILE
+        with open(CONFIG_FILE, 'wb') as configfile:
+            config.write(configfile)
+
     env.update(config._sections['energyportal_staging'])
 
 

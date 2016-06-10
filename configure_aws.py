@@ -331,14 +331,19 @@ def configure_local_settings():
 
 
 def get_instance_private_ip(instance_name):
+    instance = get_instance_by_name(instance_name)
+    influxdb_ip = instance.private_ip_address
+    return influxdb_ip
+
+
+def get_instance_by_name(instance_name):
     import boto.ec2
     REGION = config.get('ec2', 'REGION')
     conn = boto.ec2.connect_to_region(REGION)
     reservations = conn.get_all_instances(filters={"tag:Name": instance_name})
     instances = [i for r in reservations for i in r.instances]
     assert len(instances) == 1
-    influxdb_ip = instances[0].private_ip_address
-    return influxdb_ip
+    return instances[0]
 
 
 def configure_docker_env():
@@ -347,9 +352,7 @@ def configure_docker_env():
                     use_sudo=True, template_dir='templates', use_jinja=True, context=env)
 
 
-
 def configure():
-
     configure_local_settings()
     configure_docker_env()
 
