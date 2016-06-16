@@ -65,11 +65,12 @@ def configure_docker():
 
 
 def install_python():
+    sudo('apt-get install libbz2-dev')
     run('mkdir -p local/python-3.5.1')
     run('wget https://www.python.org/ftp/python/3.5.1/Python-3.5.1.tgz')
     run('tar -zxvf Python-3.5.1.tgz')
     with cd('Python-3.5.1'):
-        run('./configure --prefix=$HOME/local/python-3.5.1/')
+        run('./configure --prefix=$HOME/local/python-3.5.1/ --enable-ipv6')
         run('make')
         run('make install')
 

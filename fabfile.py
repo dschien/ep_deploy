@@ -173,7 +173,7 @@ def start_grafana():
                 logger.info('container grafana started')
 
 
-def start_websocket_client():
+def start_websocket_client(secure_server_name='secure-office'):
     container_name_or_id = 'secure_import'
     state = inspect_container(container_name_or_id)
     if state == container_state['RUNNING']:
@@ -182,8 +182,20 @@ def start_websocket_client():
 
     with settings(warn_only=True):
         with cd('ep_site'):
-            result = run(
-                "docker run -d -h %(sys_type)s --name secure_import -P  --link rabbit --link memcache  -v `pwd`:/ep_site --env CONTAINER_NAME=secure_client -w /ep_site dschien/web python manage.py import_secure_autobahn -r" % env)
+            cmd = "docker run " \
+                  "-d " \
+                  "-h {0} " \
+                  "--name secure_import " \
+                  "-P " \
+                  "--link rabbit " \
+                  "--link memcache  " \
+                  "-v `pwd`:/ep_site " \
+                  "--env CONTAINER_NAME=secure_client " \
+                  "-w /ep_site dschien/web " \
+                  "python manage.py import_secure -r -s {1}".format(
+                env['sys_type'], secure_server_name)
+
+            result = run(cmd)
             # "docker run -d -h %(sys_type)s --name secure_import -P --link db%(db_suffix)s:db -v `pwd`:/ep_site -w /ep_site dschien/web python manage.py import_secure" % env)
             if not result.failed:
                 logger.info('container websock client started')
