@@ -23,6 +23,11 @@ AWS_ACCESS_KEY_ID = '{{ aws_access_key_id }}'
 AWS_SECRET_ACCESS_KEY = '{{ aws_secret_access_key }}'
 
 IODICUS_MESSAGING_PASSWORD = '{{ messaging_password }}'
+IODICUS_MESSAGING_EXCHANGE_NAME = '{{ exchange_name }}'
+IODICUS_MESSAGING_HOST = '{{ messaging_rabbit_host }}'
+IODICUS_MESSAGING_PORT = {{ messaging_rabbit_port }}
+IODICUS_MESSAGING_USER = '{{ messaging_rabbit_user }}'
+IODICUS_MESSAGING_SSL = True
 
 SECURE_SERVERS = {{ secure_server_dictionary }}
 
@@ -46,3 +51,6 @@ PREFECT_API_TOKEN_BADOCK = '{{ prefect_api_token_badock }}'
 RAYLEIGH_TOKEN = ''
 RAYLEIGH_CLIENT_ID = ''
 RAYLEIGH_APP_ID = ''
+
+# S3 bucket name used by django 'storages' module for static files
+AWS_STORAGE_BUCKET_NAME = "ep-static"

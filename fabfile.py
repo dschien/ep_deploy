@@ -185,7 +185,7 @@ def start_websocket_client(secure_server_name='secure-office'):
             cmd = "docker run " \
                   "-d " \
                   "-h {0} " \
-                  "--name secure_import " \
+                  "--name secure_import_{1} " \
                   "-P " \
                   "--link rabbit " \
                   "--link memcache  " \
