@@ -173,7 +173,7 @@ def start_grafana():
                 logger.info('container grafana started')
 
 
-def start_websocket_client(secure_server_name='secure-office'):
+def start_websocket_client(secure_server_name='default'):
     container_name_or_id = 'secure_import'
     state = inspect_container(container_name_or_id)
     if state == container_state['RUNNING']:
@@ -190,7 +190,7 @@ def start_websocket_client(secure_server_name='secure-office'):
                   "--link rabbit " \
                   "--link memcache  " \
                   "-v `pwd`:/ep_site " \
-                  "--env CONTAINER_NAME=secure_client " \
+                  "--env CONTAINER_NAME=secure_client_{1} " \
                   "-w /ep_site dschien/web " \
                   "python manage.py import_secure -r -s {1}".format(
                 env['sys_type'], secure_server_name)
