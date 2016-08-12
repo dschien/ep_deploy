@@ -174,7 +174,7 @@ def start_grafana():
 
 
 def start_websocket_client(secure_server_name='default'):
-    container_name_or_id = 'secure_import'
+    container_name_or_id = 'secure_import_%s' % secure_server_name
     state = inspect_container(container_name_or_id)
     if state == container_state['RUNNING']:
         stop_container(container_name_or_id)
@@ -185,15 +185,15 @@ def start_websocket_client(secure_server_name='default'):
             cmd = "docker run " \
                   "-d " \
                   "-h {0} " \
-                  "--name secure_import_{1} " \
+                  "--name {1} " \
                   "-P " \
                   "--link rabbit " \
                   "--link memcache  " \
                   "-v `pwd`:/ep_site " \
-                  "--env CONTAINER_NAME=secure_client_{1} " \
+                  "--env CONTAINER_NAME={1} " \
                   "-w /ep_site dschien/web " \
-                  "python manage.py import_secure -r -s {1}".format(
-                env['sys_type'], secure_server_name)
+                  "python manage.py import_secure -r -s {2}".format(
+                env['sys_type'], container_name_or_id, secure_server_name)
 
             result = run(cmd)
             # "docker run -d -h %(sys_type)s --name secure_import -P --link db%(db_suffix)s:db -v `pwd`:/ep_site -w /ep_site dschien/web python manage.py import_secure" % env)
@@ -267,6 +267,7 @@ def restart_containers():
         redeploy_container(container)
 
     start_websocket_client()
+    start_websocket_client(secure_server_name='secure-office')
 
 
 def start_local_containers():
